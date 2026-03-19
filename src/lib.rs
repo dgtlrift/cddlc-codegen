@@ -1,0 +1,16 @@
+//! # cddlc-codegen
+//!
+//! Backend trait and shared emit utilities for `cddlc`.
+
+pub mod backend;
+pub mod emit;
+
+pub use backend::{
+    AllocStrategy, Backend, CodegenError, CodegenOptions, CodegenOutput,
+    GeneratedFile, Language,
+};
+pub use emit::{
+    capacity_value, constraint_to_c_check, constraint_to_rust_check,
+    literal_to_c, literal_to_rust, primitive_to_c, primitive_to_rust,
+    to_pascal_case, to_screaming_snake, to_snake_case, IndentWriter,
+};

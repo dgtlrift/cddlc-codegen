@@ -1,0 +1,101 @@
+/// Code-generation options passed to every backend.
+#[derive(Debug, Clone)]
+pub struct CodegenOptions {
+    /// Target language (informational — each backend ignores others).
+    pub lang:         Language,
+    /// CBOR runtime library name (e.g. "minicbor", "ciborium").
+    pub runtime:      String,
+    /// Memory allocation strategy.
+    pub alloc:        AllocStrategy,
+    /// Emit deterministic (dCBOR) encoding.
+    pub dcbor:        bool,
+    /// Rust: emit `#![no_std]` + no heap allocation.
+    pub no_std:       bool,
+    /// Maximum nesting depth for decoder stack.
+    pub depth_limit:  usize,
+    /// Namespace / module prefix for emitted symbols.
+    pub namespace:    Option<String>,
+    /// Default capacity for unbounded sequences.
+    pub max_array:    usize,
+    /// Default capacity for unbounded strings.
+    pub max_str:      usize,
+}
+
+impl Default for CodegenOptions {
+    fn default() -> Self {
+        Self {
+            lang:        Language::Rust,
+            runtime:     "minicbor".into(),
+            alloc:       AllocStrategy::Arena,
+            dcbor:       false,
+            no_std:      false,
+            depth_limit: 16,
+            namespace:   None,
+            max_array:   16,
+            max_str:     64,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Language { Rust, C, Cpp, CSharp, Python }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AllocStrategy { Stack, Arena, Heap }
+
+/// A generated source file.
+#[derive(Debug, Clone)]
+pub struct GeneratedFile {
+    /// Relative path within the output directory (e.g. `"types.rs"`).
+    pub path:    String,
+    /// File contents.
+    pub content: String,
+}
+
+/// The result of running a backend over an [`IrModule`].
+#[derive(Debug, Clone)]
+pub struct CodegenOutput {
+    pub files: Vec<GeneratedFile>,
+}
+
+impl CodegenOutput {
+    pub fn single(path: impl Into<String>, content: impl Into<String>) -> Self {
+        Self { files: vec![GeneratedFile { path: path.into(), content: content.into() }] }
+    }
+}
+
+/// The backend trait every language target must implement.
+pub trait Backend {
+    /// Human-readable language name.
+    fn language_name(&self) -> &str;
+
+    /// File extension for primary output (e.g. `"rs"`, `"h"`).
+    fn file_extension(&self) -> &str;
+
+    /// Generate all files for the given IR module.
+    fn generate(
+        &self,
+        module: &cddlc_ir::IrModule,
+        opts:   &CodegenOptions,
+    ) -> Result<CodegenOutput, crate::CodegenError>;
+}
+
+/// Error from a backend.
+#[derive(Debug)]
+pub struct CodegenError {
+    pub message: String,
+}
+
+impl CodegenError {
+    pub fn new(msg: impl Into<String>) -> Self {
+        Self { message: msg.into() }
+    }
+}
+
+impl std::fmt::Display for CodegenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for CodegenError {}
