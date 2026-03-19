@@ -195,7 +195,12 @@ fn test_array_heapless_no_std() {
 
 #[test]
 fn test_array_std_vec() {
-    let code = generate("; @capacity 8\nreadings = [* float32]");
+    let parsed  = parse_cddl("; @capacity 8\nreadings = [* float32]", PathBuf::from("test.cddl")).expect("parse");
+    let lowered = lower(&parsed.value, 16, 64).expect("lower");
+    let mut opts = CodegenOptions::default();
+    opts.alloc = cddlc_codegen::AllocStrategy::Heap;  // ← ADD THIS LINE
+    let out  = RustBackend.generate(&lowered.module, &opts).expect("generate");
+    let code = &out.files[0].content;
     assert!(code.contains("Vec<f32>"));
 }
 
