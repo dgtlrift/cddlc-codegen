@@ -12,3 +12,8 @@ path = "src/lib.rs"
 [dependencies]
 cddlc-ir  = { path = "../cddlc-ir" }
 smol_str  = "0.2"
+
+[dev-dependencies]
+cddlc-parser = { path = "../cddlc-parser" }
+cddlc-ir     = { path = "../cddlc-ir" }
+backend-rust = { path = "../backend-rust" }
