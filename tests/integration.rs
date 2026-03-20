@@ -14,7 +14,7 @@ fn generate(src: &str) -> String {
     let lowered = lower(&parsed.value, 16, 64).expect("lower");
     let opts    = CodegenOptions::default();
     let out     = RustBackend.generate(&lowered.module, &opts).expect("generate");
-    out.files[0].content.clone()
+    out.files[1].content.clone()
 }
 
 fn generate_no_std(src: &str) -> String {
@@ -23,7 +23,7 @@ fn generate_no_std(src: &str) -> String {
     let mut opts = CodegenOptions::default();
     opts.no_std = true;
     let out = RustBackend.generate(&lowered.module, &opts).expect("generate");
-    out.files[0].content.clone()
+    out.files[1].content.clone()
 }
 
 // ── Smoke tests ───────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ fn test_generates_header() {
 #[test]
 fn test_no_std_header() {
     let code = generate_no_std("device-id = uint");
-    assert!(code.contains("#![no_std]"));
+    assert!(code.contains("cfg_attr") && code.contains("no_std"));
 }
 
 // ── Type alias ────────────────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ fn test_array_std_vec() {
     let mut opts = CodegenOptions::default();
     opts.alloc = cddlc_codegen::AllocStrategy::Heap;  // ← ADD THIS LINE
     let out  = RustBackend.generate(&lowered.module, &opts).expect("generate");
-    let code = &out.files[0].content;
+    let code = &out.files[1].content;
     assert!(code.contains("Vec<f32>"));
 }
 
@@ -220,7 +220,7 @@ fn test_dcbor_comment_in_header() {
     let mut opts = CodegenOptions::default();
     opts.dcbor = true;
     let out  = RustBackend.generate(&lowered.module, &opts).unwrap();
-    let code = &out.files[0].content;
+    let code = &out.files[1].content;
     assert!(code.contains("deterministic"));
 }
 
