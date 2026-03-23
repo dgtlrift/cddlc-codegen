@@ -52,7 +52,7 @@ fn test_simple_alias() {
 #[test]
 fn test_tstr_alias() {
     let code = generate("label = tstr");
-    assert!(code.contains("pub type Label = &str;"));
+    assert!(code.contains("pub type Label = String;"));
 }
 
 #[test]
@@ -106,14 +106,14 @@ fn test_struct_decl() {
     let code = generate("sensor = { id: uint, label: tstr, value: float32 }");
     assert!(code.contains("pub struct Sensor {"));
     assert!(code.contains("pub id: u64,"));
-    assert!(code.contains("pub label: &str,"));
+    assert!(code.contains("pub label: String,"));
     assert!(code.contains("pub value: f32,"));
 }
 
 #[test]
 fn test_struct_encode_impl() {
     let code = generate("sensor = { id: uint, value: float32 }");
-    assert!(code.contains("impl<W: Write> Encode<W> for Sensor"));
+    assert!(code.contains("impl<W: Write> Encode<W, ()> for Sensor"));
     assert!(code.contains("e.map(2u64)?"));
 }
 
@@ -128,7 +128,7 @@ fn test_struct_decode_impl() {
 #[test]
 fn test_optional_field_is_option() {
     let code = generate("msg = { id: uint, ? label: tstr }");
-    assert!(code.contains("pub label: Option<&str>,"));
+    assert!(code.contains("pub label: Option<String>,"));
 }
 
 #[test]
@@ -174,8 +174,8 @@ fn test_string_enum_decl() {
 #[test]
 fn test_string_enum_encode() {
     let code = generate(r#"status = "ok" / "warn""#);
-    assert!(code.contains("impl<W: Write> Encode<W> for Status"));
-    assert!(code.contains("e.str(s)?"));
+    assert!(code.contains("impl<W: Write> Encode<W, ()> for Status"));
+    assert!(code.contains("e.str(s.as_str())?"));
 }
 
 #[test]

@@ -64,7 +64,7 @@ pub fn to_screaming_snake(s: &str) -> String {
 use cddlc_ir::Primitive;
 
 /// Map a primitive to its Rust type name.
-pub fn primitive_to_rust(p: &Primitive, _no_std: bool) -> &'static str {
+pub fn primitive_to_rust(p: &Primitive, no_std: bool) -> &'static str {
     match p {
         Primitive::Bool    => "bool",
         Primitive::Null    => "()",
@@ -75,9 +75,9 @@ pub fn primitive_to_rust(p: &Primitive, _no_std: bool) -> &'static str {
         Primitive::Float32 => "f32",
         Primitive::Float64 => "f64",
         Primitive::Float   => "f64",
-        Primitive::Bstr    => "&[u8]",
-        Primitive::Tstr    => "&str",
-        Primitive::Any     => "&[u8]", // raw CBOR bytes
+        Primitive::Tstr    => if no_std { "&'b str" } else { "String" },
+        Primitive::Bstr    => if no_std { "&'b [u8]" } else { "Vec<u8>" },
+        Primitive::Any     => if no_std { "&'b [u8]" } else { "Vec<u8>" },
     }
 }
 
@@ -119,29 +119,32 @@ pub fn constraint_to_rust_check(c: &Constraint, val_expr: &str) -> Option<String
             }
         }
         Constraint::ValueRangeInt { min, max, inclusive } => {
-            let op = if *inclusive { "=" } else { "" };
+            let ge = if *inclusive { ">=" } else { ">" };
+            let le = if *inclusive { "<=" } else { "<" };
             match (min, max) {
-                (Some(lo), Some(hi)) => Some(format!("{val_expr} >={op} {lo} && {val_expr} <={op} {hi}")),
-                (Some(lo), None)     => Some(format!("{val_expr} >={op} {lo}")),
-                (None, Some(hi))     => Some(format!("{val_expr} <={op} {hi}")),
+                (Some(lo), Some(hi)) => Some(format!("{val_expr} {ge} {lo} && {val_expr} {le} {hi}")),
+                (Some(lo), None)     => Some(format!("{val_expr} {ge} {lo}")),
+                (None, Some(hi))     => Some(format!("{val_expr} {le} {hi}")),
                 (None, None)         => None,
             }
         }
         Constraint::ValueRangeUint { min, max, inclusive } => {
-            let op = if *inclusive { "=" } else { "" };
+            let ge = if *inclusive { ">=" } else { ">" };
+            let le = if *inclusive { "<=" } else { "<" };
             match (min, max) {
-                (Some(lo), Some(hi)) => Some(format!("{val_expr} >={op} {lo} && {val_expr} <={op} {hi}")),
-                (Some(lo), None)     => Some(format!("{val_expr} >={op} {lo}")),
-                (None, Some(hi))     => Some(format!("{val_expr} <={op} {hi}")),
+                (Some(lo), Some(hi)) => Some(format!("{val_expr} {ge} {lo} && {val_expr} {le} {hi}")),
+                (Some(lo), None)     => Some(format!("{val_expr} {ge} {lo}")),
+                (None, Some(hi))     => Some(format!("{val_expr} {le} {hi}")),
                 (None, None)         => None,
             }
         }
         Constraint::ValueRangeF64 { min, max, inclusive } => {
-            let op = if *inclusive { "=" } else { "" };
+            let ge = if *inclusive { ">=" } else { ">" };
+            let le = if *inclusive { "<=" } else { "<" };
             match (min, max) {
-                (Some(lo), Some(hi)) => Some(format!("{val_expr} >={op} {lo:.?} && {val_expr} <={op} {hi:.?}")),
-                (Some(lo), None)     => Some(format!("{val_expr} >={op} {lo:.?}")),
-                (None, Some(hi))     => Some(format!("{val_expr} <={op} {hi:.?}")),
+                (Some(lo), Some(hi)) => Some(format!("{val_expr} {ge} {lo:.?} && {val_expr} {le} {hi:.?}")),
+                (Some(lo), None)     => Some(format!("{val_expr} {ge} {lo:.?}")),
+                (None, Some(hi))     => Some(format!("{val_expr} {le} {hi:.?}")),
                 (None, None)         => None,
             }
         }
