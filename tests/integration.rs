@@ -251,5 +251,6 @@ device-id = tstr .size 16
     assert!(code.contains("pub struct SensorMessage"));
     assert!(code.contains("pub struct DeviceId"));
     assert!(code.contains("val.len() == 16"));
-    assert!(code.contains("Tag::new(1)"));
+    // Inline tags in struct fields are stripped — field type is just the inner type
+    assert!(code.contains("pub timestamp: u64"));
 }
