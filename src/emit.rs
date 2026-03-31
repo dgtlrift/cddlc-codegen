@@ -189,6 +189,20 @@ pub fn constraint_to_c_check(c: &Constraint, val_expr: &str) -> Option<String> {
     }
 }
 
+/// Like `constraint_to_c_check` but uses `.size()` for C++ `std::string_view`.
+pub fn constraint_to_cpp_check(c: &Constraint, val_expr: &str) -> Option<String> {
+    match c {
+        Constraint::SizeExact(n) => Some(format!("{val_expr}.size() == {n}")),
+        Constraint::SizeRange { min, max } => match (min, max) {
+            (Some(lo), Some(hi)) => Some(format!("{val_expr}.size() >= {lo} && {val_expr}.size() <= {hi}")),
+            (Some(lo), None)     => Some(format!("{val_expr}.size() >= {lo}")),
+            (None, Some(hi))     => Some(format!("{val_expr}.size() <= {hi}")),
+            (None, None)         => None,
+        },
+        _ => constraint_to_c_check(c, val_expr),
+    }
+}
+
 // ── Literal formatting ────────────────────────────────────────────────────────
 
 use cddlc_ir::LiteralValue;
