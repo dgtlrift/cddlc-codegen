@@ -1,8 +1,20 @@
+/// Serialization format.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Format {
+    /// CBOR (RFC 8949) — default.
+    #[default]
+    Cbor,
+    /// JSON (RFC 8259), with byte strings base64url-encoded per RFC 8949 §6.1.
+    Json,
+}
+
 /// Code-generation options passed to every backend.
 #[derive(Debug, Clone)]
 pub struct CodegenOptions {
     /// Target language (informational — each backend ignores others).
     pub lang:         Language,
+    /// Serialization format.
+    pub format:       Format,
     /// CBOR runtime library name (e.g. "minicbor", "ciborium").
     pub runtime:      String,
     /// Memory allocation strategy.
@@ -25,6 +37,7 @@ impl Default for CodegenOptions {
     fn default() -> Self {
         Self {
             lang:        Language::Rust,
+            format:      Format::Cbor,
             runtime:     "minicbor".into(),
             alloc:       AllocStrategy::Arena,
             dcbor:       false,
@@ -35,6 +48,10 @@ impl Default for CodegenOptions {
             max_str:     64,
         }
     }
+}
+
+impl CodegenOptions {
+    pub fn is_json(&self) -> bool { self.format == Format::Json }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

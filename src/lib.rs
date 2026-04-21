@@ -7,7 +7,7 @@ pub mod emit;
 
 pub use backend::{
     AllocStrategy, Backend, CodegenError, CodegenOptions, CodegenOutput,
-    GeneratedFile, Language,
+    Format, GeneratedFile, Language,
 };
 pub use emit::{
     capacity_value, constraint_to_c_check, constraint_to_cpp_check, constraint_to_rust_check,
