@@ -55,7 +55,7 @@ impl CodegenOptions {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Language { Rust, C, Cpp, CSharp, Python }
+pub enum Language { Rust, C, Cpp, CSharp, Python, Dart }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AllocStrategy { Stack, Arena, Heap }
