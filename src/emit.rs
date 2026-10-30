@@ -242,3 +242,93 @@ pub fn capacity_value(cap: &Capacity, default: usize) -> usize {
         Capacity::Dynamic    => default,
     }
 }
+
+// ── Documentation comments (dgtlrift/cddlc#8) ─────────────────────────────────
+
+/// How a language writes a documentation comment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DocStyle {
+    /// One prefix per line: `///` (Rust, C++, Dart), `#` (Python).
+    Line(&'static str),
+    /// A block: `/** … */` (TypeScript), `/* … */` (C), one ` * ` line per doc line.
+    Block { open: &'static str },
+    /// C#'s XML documentation: `/// <summary>` … `/// </summary>`, text escaped.
+    CSharpXml,
+}
+
+/// Writes `doc`, if any, as a documentation comment in `style`: every line of a
+/// multi-line doc gets the comment's prefix, and text that would end the comment or
+/// break its markup is escaped.
+pub fn emit_doc_lines(w: &mut IndentWriter, doc: Option<&str>, style: DocStyle) {
+    let Some(doc) = doc else { return };
+    match style {
+        DocStyle::Line(prefix) => {
+            for line in doc.lines() {
+                if line.is_empty() {
+                    w.line(prefix);
+                } else {
+                    w.line(&format!("{prefix} {line}"));
+                }
+            }
+        }
+        DocStyle::Block { open } => {
+            let lines: Vec<String> = doc.lines().map(|l| l.replace("*/", "* /")).collect();
+            if let [only] = lines.as_slice() {
+                w.line(&format!("{open} {only} */"));
+            } else {
+                w.line(open);
+                for line in &lines {
+                    if line.is_empty() {
+                        w.line(" *");
+                    } else {
+                        w.line(&format!(" * {line}"));
+                    }
+                }
+                w.line(" */");
+            }
+        }
+        DocStyle::CSharpXml => {
+            w.line("/// <summary>");
+            for line in doc.lines() {
+                let text = line.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+                w.line(&format!("/// {text}"));
+            }
+            w.line("/// </summary>");
+        }
+    }
+}
+
+// ── Source comments (dgtlrift/cddlc#9) ────────────────────────────────────────
+
+/// `module` with each type's and field's CDDL source appended to its documentation, as
+/// `cddl: <path>:<line>: <text>` ([`cddlc_ir::SourceRef::describe`]), the path relative
+/// to `base`. Every backend writes the docs, so every backend shows the sources.
+pub fn with_source_docs(module: &cddlc_ir::IrModule, base: Option<&std::path::Path>) -> cddlc_ir::IrModule {
+    use cddlc_ir::TypeDef;
+    let mut m = module.clone();
+    let append = |doc: &mut Option<String>, line: String| match doc {
+        Some(d) => { d.push('\n'); d.push_str(&line); }
+        None => *doc = Some(line),
+    };
+    for (name, def) in &mut m.types {
+        if let Some(src) = module.sources.types.get(name) {
+            let line = src.describe(base);
+            match def {
+                TypeDef::Struct(s) => append(&mut s.doc, line),
+                TypeDef::Enum(e) => append(&mut e.doc, line),
+                TypeDef::Alias(a) => append(&mut a.doc, line),
+                TypeDef::Array(a) => append(&mut a.doc, line),
+                TypeDef::Map(mp) => append(&mut mp.doc, line),
+            }
+        }
+        if let TypeDef::Struct(s) = def {
+            for f in &mut s.fields {
+                if let Some(src) = module.sources.fields.get(&(name.clone(), f.name.clone())) {
+                    append(&mut f.doc, src.describe(base));
+                }
+            }
+        }
+    }
+    m
+}
+
